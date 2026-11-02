@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
@@ -39,6 +40,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
@@ -101,12 +103,7 @@ fun DrumsInstrument(vm: StudioViewModel, index: Int, track: Track) {
         ControlStrip {
             Segmented(DrumMode.entries, mode, { it.title }, { mode = it; if (it == DrumMode.PADS) vm.stopPreview() }, height = 28.dp)
             Spacer(Modifier.weight(1f))
-            PresetSwitcher(
-                track.type.presets.getOrNull(track.presetIndex)?.name ?: "Кит",
-                onPrev = { vm.setPreset(index, track.presetIndex - 1) },
-                onNext = { vm.setPreset(index, track.presetIndex + 1) },
-                onClick = { picker = true },
-            )
+            Text("Стучи по барабанам на картинке или по пэдам ♡", style = YumeText.small, color = c.textFaint)
         }
         if (mode == DrumMode.PADS) {
             Row(Modifier.weight(1f).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -114,6 +111,14 @@ fun DrumsInstrument(vm: StudioViewModel, index: Int, track: Track) {
                     Box(Modifier.aspectRatio(DRUM_ART_ASPECT, matchHeightConstraintsFirst = true).clip(RoundedCornerShape(18.dp))) {
                         Image(painterResource(track.type.art), null, contentScale = ContentScale.FillBounds, modifier = Modifier.fillMaxSize())
                         KitTouchLayer(flashes, onHit = ::hit)
+                        // переключатель кита закрывает место, где на макете была плашка «‹ Ударные ›»
+                        PresetSwitcher(
+                            track.type.presets.getOrNull(track.presetIndex)?.name ?: "Кит",
+                            onPrev = { vm.setPreset(index, track.presetIndex - 1) },
+                            onNext = { vm.setPreset(index, track.presetIndex + 1) },
+                            onClick = { picker = true },
+                            modifier = Modifier.align(BiasAlignment(0.18f, 0.1f)).widthIn(min = 230.dp),
+                        )
                     }
                 }
                 PadGrid(Modifier.width(280.dp).fillMaxHeight(), flashes, onHit = ::hit)

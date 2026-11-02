@@ -104,7 +104,6 @@ fun StudioScreen(vm: StudioViewModel, onExit: () -> Unit) {
     val c = Yume.colors
     val project by vm.project.collectAsState()
     val ui by vm.ui.collectAsState()
-    val transport by vm.transport.collectAsState()
     val settings by vm.settings.collectAsState()
     val snack = remember { SnackbarHostState() }
     var showSettings by remember { mutableStateOf(false) }
@@ -136,8 +135,7 @@ fun StudioScreen(vm: StudioViewModel, onExit: () -> Unit) {
         val track = p.tracks.getOrNull(ui.selected)
         Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
             TopBar(
-                vm = vm, ui = ui, transport = transport,
-                position = Timing.formatPosition(transport.position, p.beatsPerBar),
+                vm = vm, ui = ui, beatsPerBar = p.beatsPerBar,
                 bpm = p.bpm, key = NoteNames.pitchClass(p.keyRoot) + if (p.minor) "m" else "",
                 metronome = p.metronome, loop = p.loopOn, trackType = track?.type,
                 onExit = exit, onSettings = { showSettings = true }, onTempo = { showTempo = true },
@@ -217,8 +215,7 @@ private fun EmptyHint(onAdd: () -> Unit) {
 private fun TopBar(
     vm: StudioViewModel,
     ui: StudioUi,
-    transport: TransportState,
-    position: String,
+    beatsPerBar: Int,
     bpm: Float,
     key: String,
     metronome: Boolean,
@@ -229,6 +226,9 @@ private fun TopBar(
     onTempo: () -> Unit,
 ) {
     val c = Yume.colors
+    // транспорт читаем только здесь — остальной экран не перерисовывается 60 раз в секунду
+    val transport by vm.transport.collectAsState()
+    val position = Timing.formatPosition(transport.position, beatsPerBar)
     Row(
         Modifier.fillMaxWidth().height(56.dp).padding(horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically,

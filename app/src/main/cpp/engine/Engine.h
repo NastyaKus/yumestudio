@@ -69,6 +69,8 @@ public:
     void allNotesOff(int t);
     void setSustain(int t, bool on);
     void setPitchBend(int t, float semis);
+    // арпеджиатор: rateTicks — длина шага, mode 0 вверх / 1 вниз / 2 вверх-вниз / 3 случайно
+    void setArp(int t, bool on, int rateTicks, int mode, int octaves);
 
     // ── транспорт / секвенсор ──
     void setArrangement(Arrangement* arr);  // владение передаётся движку
@@ -125,7 +127,7 @@ private:
         C_NOTE_ON, C_NOTE_OFF, C_ALL_OFF, C_SUSTAIN, C_BEND, C_PRESET, C_SET_TSF, C_SET_SYNTH,
         C_SET_KIND, C_SYNTH_PARAM, C_MIX, C_FX_SET, C_FX_PARAM, C_FX_ENABLE, C_ARRANGEMENT,
         C_PLAY, C_STOP, C_SEEK, C_BPM, C_TIMESIG, C_LOOP, C_METRO, C_REC_START, C_REC_STOP,
-        C_MONITOR, C_CLIP_SET, C_MASTER, C_PREVIEW, C_PREVIEW_CLIP, C_PREVIEW_STOP, C_REVERB
+        C_MONITOR, C_CLIP_SET, C_MASTER, C_PREVIEW, C_PREVIEW_CLIP, C_PREVIEW_STOP, C_REVERB, C_ARP
     };
     struct Cmd {
         int type = 0, track = 0, a = 0, b = 0;
@@ -151,6 +153,15 @@ private:
         int nDelayed = 0;
         bool sustain = false;
         bool monitor = false;
+        // арпеджиатор
+        bool arpOn = false;
+        int arpRate = kPPQ / 4, arpMode = 0, arpOct = 1;
+        int held[16];
+        int nHeld = 0;
+        float arpVel = 0.8f;
+        double arpAcc = 0.0;
+        int arpIdx = 0, arpKey = -1;
+        bool arpGateClosed = true;
     };
     struct PreviewData { std::vector<NoteEv> notes; int32_t length = 0; float bpm = 100.f; };
 
@@ -165,6 +176,9 @@ private:
     void liveNoteOn(int t, int key, float vel);
     void liveNoteOff(int t, int key);
     void releaseSequenced(int t);
+    void arpPress(int t, int key, float vel);
+    void arpRelease(int t, int key);
+    void arpTick(int t, int n);
     void releaseAllSequenced();
     void fireMidi(int t, const std::vector<MidiRegion>& regs, double t0, double t1);
     void fireNoteOffs(int t, double t1);
@@ -206,6 +220,7 @@ private:
     double recStartTick_ = 0.0;
     int countInEnd_ = 0;  // тик, после которого начинается запись
 
+    Noise arpNoise_;
     // клик метронома
     float clickPhase_ = 0.f, clickFreq_ = 1500.f, clickEnv_ = 0.f;
 

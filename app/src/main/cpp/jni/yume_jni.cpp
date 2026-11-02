@@ -94,6 +94,9 @@ FN(void, nativeNoteOff)(JNIEnv*, jobject, jint t, jint key, jfloat delayMs) {
 }
 FN(void, nativeAllNotesOff)(JNIEnv*, jobject, jint t) { E; gEngine->allNotesOff(t); }
 FN(void, nativeSetSustain)(JNIEnv*, jobject, jint t, jboolean on) { E; gEngine->setSustain(t, on); }
+FN(void, nativeSetArp)(JNIEnv*, jobject, jint t, jboolean on, jint rate, jint mode, jint oct) {
+    E; gEngine->setArp(t, on, rate, mode, oct);
+}
 FN(void, nativeSetPitchBend)(JNIEnv*, jobject, jint t, jfloat semis) { E; gEngine->setPitchBend(t, semis); }
 
 // Формат: [nTracks, {track, nMidi, {start,len,contentLen,nNotes,{tick,len,key,vel}*}*,

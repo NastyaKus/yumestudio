@@ -67,18 +67,17 @@ fun StringsInstrument(vm: StudioViewModel, index: Int, track: Track) {
             Spacer(Modifier.width(8.dp))
             Column(
                 Modifier.weight(0.5f).fillMaxHeight().clip(RoundedCornerShape(18.dp)).background(c.surface).padding(10.dp),
-                verticalArrangement = Arrangement.SpaceBetween,
+                verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                Text("Струнные", style = YumeText.title, color = c.text)
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                Row(Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
                     Instruments.strings.take(4).forEachIndexed { i, sec ->
                         val sel = track.presetIndex == i
                         Column(
                             Modifier.clip(RoundedCornerShape(12.dp)).background(if (sel) c.primary.copy(alpha = 0.25f) else Color.Transparent)
-                                .clickable { vm.setPreset(index, i) }.padding(6.dp),
+                                .clickable { vm.setPreset(index, i) }.padding(horizontal = 8.dp, vertical = 4.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
                         ) {
-                            ViolinIcon(Modifier.size(width = 26.dp, height = 40.dp + (i * 6).dp), if (sel) c.primary else c.peach)
+                            ViolinIcon(Modifier.size(width = 16.dp + (i * 2).dp, height = 24.dp + (i * 3).dp), if (sel) c.primary else c.peach)
                             Text(sec.name, style = YumeText.tiny, color = if (sel) c.text else c.textDim)
                         }
                     }
@@ -87,10 +86,10 @@ fun StringsInstrument(vm: StudioViewModel, index: Int, track: Track) {
                     Articulation.entries.forEach { a ->
                         val sel = track.articulation == a
                         Box(
-                            Modifier.weight(1f).height(34.dp).clip(RoundedCornerShape(12.dp))
+                            Modifier.weight(1f).height(32.dp).clip(RoundedCornerShape(12.dp))
                                 .background(if (sel) c.primaryDeep else c.surfaceHigh).clickable { vm.setArticulation(index, a) },
                             contentAlignment = Alignment.Center,
-                        ) { Text(a.title, style = YumeText.small, color = if (sel) Color.White else c.text) }
+                        ) { Text(a.title, style = YumeText.small, color = if (sel) Color.White else c.text, maxLines = 1) }
                     }
                 }
             }

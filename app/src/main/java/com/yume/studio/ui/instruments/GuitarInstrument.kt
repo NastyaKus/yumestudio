@@ -175,10 +175,11 @@ private fun StrumStrings(chord: GuitarChord, onString: (Int, Float) -> Unit, mod
             drawLine(Color(0x55000000), Offset(0f, y + 2f), Offset(size.width, y + 2f), thick)
             drawLine(if (!active) Color(0x66F4E6D8) else if (hot) c.primary else Color(0xFFF4E6D8), Offset(0f, y), Offset(size.width, y), thick)
         }
-        drawContext.canvas.nativeCanvas.drawText(
-            "проведи по струнам ↕", 12.dp.toPx(), 16.dp.toPx(),
-            android.graphics.Paint().apply { color = android.graphics.Color.argb(120, 255, 230, 240); textSize = 11.dp.toPx(); isAntiAlias = true },
-        )
+        val hint = android.graphics.Paint().apply {
+            color = android.graphics.Color.argb(110, 255, 230, 240); textSize = 11.dp.toPx(); isAntiAlias = true
+            textAlign = android.graphics.Paint.Align.RIGHT
+        }
+        drawContext.canvas.nativeCanvas.drawText("проведи по струнам ↕", size.width - 12.dp.toPx(), size.height - 6.dp.toPx(), hint)
     }
 }
 

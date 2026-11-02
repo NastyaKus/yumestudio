@@ -205,7 +205,7 @@ private fun ProjectsPane(projects: List<ProjectMeta>, onOpen: (String) -> Unit, 
     }
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
-        val bannerH = (maxHeight * 0.56f).coerceAtMost(260.dp)
+        val bannerH = (maxHeight * 0.52f).coerceAtMost(260.dp)
         Column(Modifier.fillMaxSize()) {
             Box(Modifier.fillMaxWidth().height(bannerH).clip(RoundedCornerShape(22.dp))) {
                 Image(painterResource(R.drawable.art_home), null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
@@ -294,7 +294,7 @@ private fun ProjectCard(
     val art = p.trackTypes.firstOrNull()?.art ?: R.drawable.art_library
     Column(Modifier.width(190.dp).clip(RoundedCornerShape(18.dp)).clickable(onClick = onOpen)) {
         Box(Modifier.fillMaxWidth().aspectRatio(2.1f).clip(RoundedCornerShape(16.dp))) {
-            Image(painterResource(art), null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+            Image(painterResource(art), null, contentScale = ContentScale.Crop, alignment = Alignment.TopCenter, modifier = Modifier.fillMaxSize())
             Text("${p.bpm.toInt()} BPM", style = YumeText.tiny, color = Color.White,
                 modifier = Modifier.align(Alignment.TopEnd).padding(6.dp).clip(CircleShape).background(Color(0x99301B28)).padding(horizontal = 8.dp, vertical = 2.dp))
         }
@@ -333,7 +333,7 @@ private fun InstrumentsPane(onPick: (InstrumentType) -> Unit) {
 fun InstrumentCard(t: InstrumentType, onClick: () -> Unit) {
     val c = Yume.colors
     Box(Modifier.fillMaxWidth().height(110.dp).clip(RoundedCornerShape(18.dp)).clickable(onClick = onClick)) {
-        Image(painterResource(t.art), null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+        Image(painterResource(t.art), null, contentScale = ContentScale.Crop, alignment = Alignment.TopCenter, modifier = Modifier.fillMaxSize())
         Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent, Color(0xCC2B1F27)))))
         Column(Modifier.align(Alignment.BottomStart).padding(10.dp)) {
             Text(t.title, style = YumeText.title, color = Color.White)

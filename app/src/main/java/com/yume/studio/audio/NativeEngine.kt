@@ -45,6 +45,7 @@ object NativeEngine {
     external fun nativeAllNotesOff(track: Int)
     external fun nativeSetSustain(track: Int, on: Boolean)
     external fun nativeSetPitchBend(track: Int, semitones: Float)
+    external fun nativeSetArp(track: Int, on: Boolean, rateTicks: Int, mode: Int, octaves: Int)
 
     external fun nativeSetArrangement(data: IntArray)
     external fun nativePlay()

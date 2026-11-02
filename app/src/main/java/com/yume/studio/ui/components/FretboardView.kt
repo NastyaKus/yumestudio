@@ -118,7 +118,7 @@ fun FretboardView(
             val y = size.height - (s + 0.5f) * rowH
             for (f in 0 until frets) {
                 val key = tuning[s] + firstFret + f
-                if (highlight(key)) drawCircle(accent.copy(alpha = 0.22f), rowH * 0.28f, Offset((f + 0.5f) * fw, y))
+                if (highlight(key)) drawCircle(accent.copy(alpha = 0.35f), minOf(rowH * 0.2f, 7.dp.toPx()), Offset((f + 0.5f) * fw, y))
             }
         }
         // струны

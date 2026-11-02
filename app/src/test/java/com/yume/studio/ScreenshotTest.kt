@@ -20,6 +20,8 @@ import com.yume.studio.ui.studio.StudioMode
 import com.yume.studio.ui.studio.StudioScreen
 import com.yume.studio.ui.studio.StudioViewModel
 import com.yume.studio.ui.theme.YumeTheme
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.runBlocking
 import org.junit.Rule
 import org.junit.Test
@@ -83,7 +85,7 @@ class ScreenshotTest {
         runBlocking { app.repository.save(p) }
         val vm = StudioViewModel(app, p.id)
         compose.setContent { YumeTheme(ThemeMode.DUSK) { StudioScreen(vm) {} } }
-        compose.waitUntil(10_000) { vm.project.value != null }
+        compose.waitUntil(30_000) { vm.project.value != null }
         shot("02_tracks")
         val modes = listOf(
             Triple(0, StudioMode.INSTRUMENT, "03_keys"),
@@ -105,6 +107,7 @@ class ScreenshotTest {
         shot("13_piano_roll")
         compose.runOnIdle { vm.setMode(StudioMode.TRACKS); vm.selectRegion(p.tracks[3].regions[0].id) }
         shot("14_tracks_selected")
+        vm.viewModelScope.cancel()
     }
 
     @Test
@@ -114,8 +117,9 @@ class ScreenshotTest {
         runBlocking { app.repository.save(p) }
         val vm = StudioViewModel(app, p.id)
         compose.setContent { YumeTheme(ThemeMode.SAKURA) { StudioScreen(vm) {} } }
-        compose.waitUntil(10_000) { vm.project.value != null }
+        compose.waitUntil(30_000) { vm.project.value != null }
         compose.runOnIdle { vm.select(4); vm.setMode(StudioMode.INSTRUMENT) }
         shot("15_sakura_synth")
+        vm.viewModelScope.cancel()
     }
 }

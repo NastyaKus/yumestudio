@@ -565,6 +565,10 @@ class StudioViewModel(app: Application, private val projectId: String) : Android
     }
 
     fun setSustain(on: Boolean) { if (ready) currentTrack()?.let { NativeEngine.nativeSetSustain(it.first, on) } }
+    fun setArp(track: Int, on: Boolean, rateTicks: Int, mode: Int, octaves: Int) {
+        if (ready) NativeEngine.nativeSetArp(track, on, rateTicks, mode, octaves)
+    }
+
     fun setPitchBend(semis: Float) { if (ready) currentTrack()?.let { NativeEngine.nativeSetPitchBend(it.first, semis) } }
 
     // ───────────────────────── вход / мониторинг ─────────────────────────

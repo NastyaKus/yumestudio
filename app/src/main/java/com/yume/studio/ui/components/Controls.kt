@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
@@ -230,7 +231,10 @@ fun Knob(
             val p2 = Offset(r + (r * 0.5f * cos(a)).toFloat(), r + (r * 0.5f * sin(a)).toFloat())
             drawLine(Color(0xFF8A4A63), p1, p2, strokeWidth = r * 0.11f, cap = StrokeCap.Round)
         }
-        Text(valueText ?: label, style = YumeText.tiny, color = labelColor ?: c.textDim, maxLines = 1, textAlign = TextAlign.Center)
+        Text(
+            valueText ?: label, style = YumeText.tiny, color = labelColor ?: c.textDim, maxLines = 1, softWrap = false,
+            textAlign = TextAlign.Center, modifier = Modifier.requiredWidth(size + 22.dp),
+        )
     }
 }
 

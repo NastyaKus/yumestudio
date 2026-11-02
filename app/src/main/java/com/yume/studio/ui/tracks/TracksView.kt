@@ -85,6 +85,8 @@ import com.yume.studio.ui.studio.ClipInfo
 import com.yume.studio.ui.studio.StudioViewModel
 import com.yume.studio.ui.theme.Yume
 import com.yume.studio.ui.theme.YumeText
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.hypot
@@ -100,8 +102,9 @@ fun TracksView(vm: StudioViewModel) {
     val c = Yume.colors
     val project by vm.project.collectAsState()
     val ui by vm.ui.collectAsState()
-    val transport by vm.transport.collectAsState()
     val clips by vm.clips.collectAsState()
+    val recordingFlow = remember { vm.transport.map { it.recording }.distinctUntilChanged() }
+    val recording by recordingFlow.collectAsState(false)
     val recRegion by vm.recordingRegion.collectAsState()
     val p = project ?: return
     val density = LocalDensity.current
@@ -117,12 +120,14 @@ fun TracksView(vm: StudioViewModel) {
     var renaming by remember { mutableStateOf<Int?>(null) }
 
     // авто-прокрутка за плейхедом
-    LaunchedEffect(transport.position, transport.playing) {
-        if (!transport.playing) return@LaunchedEffect
-        val x = (transport.position * pxPerTick).toInt()
-        val view = hScroll.viewportSize
-        if (view > 0 && (x > hScroll.value + view * 0.85f || x < hScroll.value)) {
-            hScroll.scrollTo((x - view * 0.15f).toInt().coerceAtLeast(0))
+    LaunchedEffect(pxPerTick) {
+        vm.transport.collect { t ->
+            if (!t.playing) return@collect
+            val x = (t.position * pxPerTick).toInt()
+            val view = hScroll.viewportSize
+            if (view > 0 && (x > hScroll.value + view * 0.85f || x < hScroll.value)) {
+                hScroll.scrollTo((x - view * 0.15f).toInt().coerceAtLeast(0))
+            }
         }
     }
 
@@ -141,7 +146,7 @@ fun TracksView(vm: StudioViewModel) {
                 Column(Modifier.weight(1f).verticalScroll(vScroll)) {
                     p.tracks.forEachIndexed { i, t ->
                         TrackHeader(
-                            vm, i, t, selected = i == ui.selected, recording = transport.recording && i == ui.selected,
+                            vm, i, t, selected = i == ui.selected, recording = recording && i == ui.selected,
                             onRename = { renaming = i },
                         )
                     }
@@ -185,7 +190,7 @@ fun TracksView(vm: StudioViewModel) {
                         },
                 ) {
                     Column(Modifier.fillMaxSize().horizontalScroll(hScroll)) {
-                        Ruler(vm, p, pxPerTick, totalW, transport.position)
+                        Ruler(vm, p, pxPerTick, totalW)
                         Box(Modifier.weight(1f).verticalScroll(vScroll)) {
                             Column {
                                 p.tracks.forEachIndexed { i, t ->
@@ -193,24 +198,23 @@ fun TracksView(vm: StudioViewModel) {
                                         vm = vm, project = p, track = t, index = i, pxPerTick = pxPerTick, totalW = totalW,
                                         selectedRegion = ui.selectedRegion, selectedTrack = ui.selected == i, clips = clips,
                                         snapTicks = snapTicks,
-                                        recording = recRegion?.takeIf { transport.recording && i == ui.selected },
+                                        recording = recRegion?.takeIf { recording && i == ui.selected },
                                     )
                                 }
                                 Spacer(Modifier.height(60.dp).width(with(density) { totalW.toDp() }))
                             }
                         }
                     }
-                    // плейхед
-                    val phX = transport.position * pxPerTick - hScroll.value
-                    if (phX >= -2 && phX <= viewportW + 2) {
-                        Canvas(Modifier.fillMaxSize()) {
-                            val x = phX.toFloat()
-                            drawLine(Color.White, Offset(x, 0f), Offset(x, size.height), 2.dp.toPx())
-                            val tri = Path().apply {
-                                moveTo(x - 7.dp.toPx(), 0f); lineTo(x + 7.dp.toPx(), 0f); lineTo(x, 10.dp.toPx()); close()
-                            }
-                            drawPath(tri, Color.White)
+                    // плейхед: позицию читаем только в фазе рисования
+                    val transportState = vm.transport.collectAsState()
+                    Canvas(Modifier.fillMaxSize()) {
+                        val x = (transportState.value.position * pxPerTick - hScroll.value).toFloat()
+                        if (x < -2f || x > viewportW + 2f) return@Canvas
+                        drawLine(Color.White, Offset(x, 0f), Offset(x, size.height), 2.dp.toPx())
+                        val tri = Path().apply {
+                            moveTo(x - 7.dp.toPx(), 0f); lineTo(x + 7.dp.toPx(), 0f); lineTo(x, 10.dp.toPx()); close()
                         }
+                        drawPath(tri, Color.White)
                     }
                 }
             }
@@ -299,7 +303,7 @@ private fun MiniSlider(value: Float, onChange: (Float) -> Unit, color: Color) {
 }
 
 @Composable
-private fun Ruler(vm: StudioViewModel, p: Project, pxPerTick: Float, totalW: Float, position: Double) {
+private fun Ruler(vm: StudioViewModel, p: Project, pxPerTick: Float, totalW: Float) {
     val c = Yume.colors
     val density = LocalDensity.current
     val bar = p.ticksPerBar
@@ -367,9 +371,6 @@ private fun Ruler(vm: StudioViewModel, p: Project, pxPerTick: Float, totalW: Flo
                 val bx = x + beat * PPQ * pxPerTick
                 drawLine(c.gridLine, Offset(bx, size.height * 0.7f), Offset(bx, size.height), 1.dp.toPx())
             }
-        }
-        if (position < 0) {
-            drawRect(c.danger.copy(alpha = 0.25f), Offset(0f, 0f), Size(8.dp.toPx(), size.height))
         }
     }
 }

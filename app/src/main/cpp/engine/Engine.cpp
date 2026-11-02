@@ -171,6 +171,11 @@ void Engine::noteOff(int t, int key, int delayFrames) {
     post(c);
 }
 
+void Engine::setArp(int t, bool on, int rateTicks, int mode, int octaves) {
+    Cmd c; c.type = C_ARP; c.track = t; c.flag = on; c.a = std::max(kPPQ / 16, rateTicks); c.b = mode; c.f = (float)octaves;
+    post(c);
+}
+
 void Engine::allNotesOff(int t) { Cmd c; c.type = C_ALL_OFF; c.track = t; post(c); }
 void Engine::setSustain(int t, bool on) { Cmd c; c.type = C_SUSTAIN; c.track = t; c.flag = on; post(c); }
 void Engine::setPitchBend(int t, float semis) { Cmd c; c.type = C_BEND; c.track = t; c.f = semis; post(c); }
@@ -364,6 +369,8 @@ void Engine::handle(const Cmd& c) {
             if (c.b > 0) {
                 Track& tr = tracks_[t];
                 if (tr.nDelayed < 64) tr.delayed[tr.nDelayed++] = {c.a, c.f, c.b, true};
+            } else if (tracks_[t].arpOn) {
+                arpPress(t, c.a, c.f);
             } else {
                 liveNoteOn(t, c.a, c.f);
             }
@@ -373,12 +380,28 @@ void Engine::handle(const Cmd& c) {
             if (c.b > 0) {
                 Track& tr = tracks_[t];
                 if (tr.nDelayed < 64) tr.delayed[tr.nDelayed++] = {c.a, 0.f, c.b, false};
+            } else if (tracks_[t].arpOn) {
+                arpRelease(t, c.a);
             } else {
                 liveNoteOff(t, c.a);
             }
             break;
+        case C_ARP: {
+            if (!validTrack) break;
+            Track& tr = tracks_[t];
+            if (!c.flag && tr.arpKey >= 0) liveNoteOff(t, tr.arpKey);
+            if (!c.flag) { tr.nHeld = 0; tr.arpKey = -1; }
+            tr.arpOn = c.flag;
+            tr.arpRate = c.a;
+            tr.arpMode = c.b;
+            tr.arpOct = std::max(1, std::min(3, (int)c.f));
+            break;
+        }
         case C_ALL_OFF:
             if (!validTrack) break;
+            if (tracks_[t].arpKey >= 0) liveNoteOff(t, tracks_[t].arpKey);
+            tracks_[t].nHeld = 0;
+            tracks_[t].arpKey = -1;
             if (tracks_[t].sf) { tsf_channel_set_sustain(tracks_[t].sf, 0, 0); tsf_channel_note_off_all(tracks_[t].sf, 0); }
             if (tracks_[t].synth) tracks_[t].synth->allNotesOff();
             tracks_[t].nDelayed = 0;
@@ -537,6 +560,59 @@ void Engine::handle(const Cmd& c) {
     }
 }
 
+// ───────────────────────────── арпеджиатор ─────────────────────────────
+
+void Engine::arpPress(int t, int key, float vel) {
+    Track& tr = tracks_[t];
+    for (int i = 0; i < tr.nHeld; ++i) if (tr.held[i] == key) return;
+    if (tr.nHeld >= 16) return;
+    int pos = tr.nHeld;
+    while (pos > 0 && tr.held[pos - 1] > key) { tr.held[pos] = tr.held[pos - 1]; --pos; }
+    tr.held[pos] = key;
+    tr.nHeld++;
+    tr.arpVel = vel;
+    if (tr.nHeld == 1) { tr.arpAcc = (double)tr.arpRate; tr.arpIdx = 0; }  // первая нота — сразу
+}
+
+void Engine::arpRelease(int t, int key) {
+    Track& tr = tracks_[t];
+    int w = 0;
+    for (int i = 0; i < tr.nHeld; ++i) if (tr.held[i] != key) tr.held[w++] = tr.held[i];
+    tr.nHeld = w;
+    if (tr.nHeld == 0 && tr.arpKey >= 0) { liveNoteOff(t, tr.arpKey); tr.arpKey = -1; tr.arpGateClosed = true; }
+}
+
+void Engine::arpTick(int t, int n) {
+    Track& tr = tracks_[t];
+    if (!tr.arpOn || tr.nHeld == 0) return;
+    tr.arpAcc += n / samplesPerTick();
+    if (!tr.arpGateClosed && tr.arpAcc >= tr.arpRate * 0.6) {
+        if (tr.arpKey >= 0) liveNoteOff(t, tr.arpKey);
+        tr.arpGateClosed = true;
+    }
+    if (tr.arpAcc < tr.arpRate) return;
+    tr.arpAcc = std::fmod(tr.arpAcc, (double)tr.arpRate);
+    const int len = tr.nHeld * tr.arpOct;
+    int i;
+    switch (tr.arpMode) {
+        case 1: i = len - 1 - (tr.arpIdx % len); break;
+        case 2: {
+            const int period = std::max(1, len * 2 - 2);
+            const int ph = tr.arpIdx % period;
+            i = ph < len ? ph : period - ph;
+            break;
+        }
+        case 3: i = (int)((arpNoise_.next() * 0.5f + 0.5f) * len) % len; break;
+        default: i = tr.arpIdx % len; break;
+    }
+    tr.arpIdx++;
+    const int key = tr.held[i % tr.nHeld] + 12 * (i / tr.nHeld);
+    if (!tr.arpGateClosed && tr.arpKey >= 0) liveNoteOff(t, tr.arpKey);
+    liveNoteOn(t, key, tr.arpVel);
+    tr.arpKey = key;
+    tr.arpGateClosed = false;
+}
+
 // ───────────────────────────── секвенсор ─────────────────────────────
 
 void Engine::fireMidi(int t, const std::vector<MidiRegion>& regs, double t0, double t1) {
@@ -660,6 +736,8 @@ void Engine::renderChunk(float* out, int n, bool includeMetronome) {
         }
         tr.nDelayed = w;
     }
+
+    for (int t = 0; t < kMaxTracks; ++t) arpTick(t, n);
 
     // ── секвенсор ──
     const double spt = samplesPerTick();

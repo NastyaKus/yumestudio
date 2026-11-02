@@ -75,7 +75,7 @@ fun PianoRollView(vm: StudioViewModel) {
     val c = Yume.colors
     val ui by vm.ui.collectAsState()
     val project by vm.project.collectAsState()
-    val transport by vm.transport.collectAsState()
+    val transportState = vm.transport.collectAsState()
     val found = vm.findRegion(ui.editingRegion)
     val p = project
     if (found == null || p == null) {
@@ -273,7 +273,7 @@ fun PianoRollView(vm: StudioViewModel) {
                         if (sel) drawRoundRect(Color.White, Offset(n.tick * pxPerTick, y + 1.5f), Size(max(4f, n.length * pxPerTick - 1f), rowPx - 3f), CornerRadius(6f), style = Stroke(2.5f))
                     }
                     // плейхед внутри региона
-                    val rel = transport.position - region.start
+                    val rel = transportState.value.position - region.start
                     if (rel >= 0 && rel < region.length) {
                         val x = ((rel % length) * pxPerTick).toFloat()
                         drawLine(Color.White, Offset(x, 0f), Offset(x, size.height), 2f)

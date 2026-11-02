@@ -175,6 +175,26 @@ int main(int argc, char** argv) {
     auto peaks = eng.clipPeaks(1, 100);
     CHECK(peaks.size() == 100, "clip peaks");
 
+    // арпеджиатор: зажат аккорд — должны пойти отдельные ноты по шагам
+    eng.setTrackMix(0, 0.8f, 0, 0, false, false);
+    eng.setArp(0, true, kPPQ / 4, 0, 2);
+    eng.startRecording(0, 0, false, "");
+    eng.noteOn(0, 60, 0.8f);
+    eng.noteOn(0, 64, 0.8f);
+    eng.noteOn(0, 67, 0.8f);
+    for (int i = 0; i < 100; ++i) eng.render(rt.data(), 512);  // ~1 c при 92 BPM ≈ 6 шестнадцатых
+    eng.noteOff(0, 60); eng.noteOff(0, 64); eng.noteOff(0, 67);
+    eng.render(rt.data(), 512);
+    eng.stopRecording();
+    eng.stop();
+    eng.setArp(0, false, kPPQ / 4, 0, 1);
+    eng.render(rt.data(), 256);
+    int arpOn = 0;
+    std::vector<int> arpKeys;
+    while (eng.pollRecorded(rn)) if (rn.on) { ++arpOn; arpKeys.push_back(rn.key); }
+    CHECK(arpOn >= 5, "arpeggiator steps recorded");
+    CHECK(arpKeys.size() >= 3 && arpKeys[0] == 60 && arpKeys[1] == 64 && arpKeys[2] == 67, "arpeggiator plays upward");
+
     // превью
     eng.setTrackInstrument(kPreviewTrack, KIND_SF2, 0, 10);
     eng.previewPattern({{0, 400, 72, 100}, {480, 400, 76, 100}}, kPPQ, 120.f);
